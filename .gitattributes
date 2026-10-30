@@ -1,0 +1,15 @@
+# 统一文本换行与二进制标记：避免 Windows 侧再次丢失可执行位/写入 CRLF
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.jar binary

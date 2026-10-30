@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.wmhwiki.wangojbackend.mapper.ProblemMapper">
+
+    <resultMap id="BaseResultMap" type="cn.wmhwiki.wangojbackend.domain.Problem">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="title" column="title" jdbcType="VARCHAR"/>
+            <result property="content" column="content" jdbcType="VARCHAR"/>
+            <result property="tags" column="tags" jdbcType="VARCHAR"/>
+            <result property="testCase" column="testCase" jdbcType="VARCHAR"/>
+            <result property="limitOption" column="limitOption" jdbcType="VARCHAR"/>
+            <result property="commitNum" column="commitNum" jdbcType="INTEGER"/>
+            <result property="acceptNum" column="acceptNum" jdbcType="INTEGER"/>
+            <result property="createdTime" column="createdTime" jdbcType="TIMESTAMP"/>
+            <result property="isDeleted" column="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,title,content,
+        tags,testCase,limitOption,
+        commitNum,acceptNum,createdTime,
+        isDeleted
+    </sql>
+</mapper>

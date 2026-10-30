@@ -1,0 +1,11 @@
+WangOJ 判题沙箱（judge/）
+Copyright 2024 Wang Minghao <wmh031024@163.com>
+
+本目录包含修改自 code-judge 的代码。上游信息：
+
+  项目：code-judge
+  作者：zyyzyykk
+  地址：https://github.com/kk-OJ/code-judge
+  许可证：Apache License 2.0
+
+上游许可证全文保存在本目录 LICENSE；修改说明与第三方依赖归属见仓库根目录 NOTICE。

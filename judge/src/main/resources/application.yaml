@@ -1,0 +1,11 @@
+server:
+  port: ${JUDGE_PORT:8122}
+
+# 与后端共享的鉴权令牌；未配置时拒绝所有判题请求（fail-closed）
+judge:
+  token: ${JUDGE_TOKEN:}
+
+logging:
+  level:
+    root: info
+    cn.wmhwiki.judge: ${JUDGE_LOG_LEVEL:info}

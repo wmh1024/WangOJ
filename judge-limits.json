@@ -1,0 +1,7 @@
+{
+  "timeLimitMs": { "default": 1000, "min": 200, "max": 5000 },
+  "memoryLimitMb": { "default": 256, "min": 32, "max": 512 },
+  "testCases": { "max": 10 },
+  "codeLength": { "max": 65536 },
+  "outputBytes": { "max": 65536 }
+}

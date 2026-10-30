@@ -1,0 +1,121 @@
+spring:
+  application:
+    name: wangoj-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://localhost:3306/wangoj?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 10000
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 5000
+      timeout: 5000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          max-wait: 10
+          min-idle: 1
+
+server:
+  port: ${SERVER_PORT:8123}
+  shutdown: graceful
+  # 未匹配到路由时抛 NoHandlerFoundException，交给 GlobalExceptionHandler 统一返回 404 JSON
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: true
+  error:
+    include-message: never
+    include-stacktrace: never
+
+app:
+  # 允许跨域的前端来源，多个用逗号分隔
+  cors-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  datasource:
+    # 数据库口令启动校验：空值、示例占位值或短于 12 字符会直接失败（见 DataSourceCredentialValidator）
+    validate-password: ${APP_DB_VALIDATE_PASSWORD:true}
+  # 密码哈希盐值：必须通过环境变量注入，且上线后不要再修改；
+  # 缺失、过短或使用示例占位值会在启动时直接失败（见 PasswordSaltValidator）
+  password-salt: ${APP_PASSWORD_SALT:}
+  # 登录失败限流：同一账号在窗口期内允许的最大失败次数
+  login-max-failures: ${APP_LOGIN_MAX_FAILURES:5}
+  login-lock-seconds: ${APP_LOGIN_LOCK_SECONDS:300}
+  # 登录 Token 有效期（分钟），每次请求滑动续期
+  token-timeout-minutes: ${APP_TOKEN_TIMEOUT_MINUTES:10}
+  # 题目详情缓存（小时）与排行榜缓存（分钟）
+  problem-cache-hours: ${APP_PROBLEM_CACHE_HOURS:12}
+  rank-cache-minutes: ${APP_RANK_CACHE_MINUTES:5}
+  # AI 功能（默认关闭）
+  ai:
+    enabled: ${APP_AI_ENABLED:false}
+    base-url: ${AI_BASE_URL:https://api.openai.com}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:gpt-4o-mini}
+    connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:5000}
+    read-timeout-ms: ${AI_READ_TIMEOUT_MS:60000}
+    max-code-length: ${AI_MAX_CODE_LENGTH:65536}
+    # 单个用户每分钟最多调用 AI 接口的次数（0 或负数表示不限制）
+    rate-limit-per-minute: ${APP_AI_RATE_LIMIT_PER_MINUTE:10}
+
+# 判题沙箱（只应由后端访问，不对外暴露）
+judge:
+  url: ${JUDGE_URL:http://localhost:8122/api/v1/judge}
+  # 与沙箱共享的鉴权令牌，必须通过环境变量注入
+  token: ${JUDGE_TOKEN:}
+  connect-timeout-ms: ${JUDGE_CONNECT_TIMEOUT_MS:2000}
+  # 建议 >= 编译时间 + 题目时间限制 × 测试点数 + 5s
+  read-timeout-ms: ${JUDGE_READ_TIMEOUT_MS:60000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: false
+
+# springdoc / knife4j
+springdoc:
+  swagger-ui:
+    path: /swagger.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /api-docs
+  group-configs:
+    - group: 'wangoj'
+      paths-to-match: '/**'
+      packages-to-scan: cn.wmhwiki.wangojbackend.controller
+
+knife4j:
+  enable: ${KNIFE4J_ENABLE:true}
+  setting:
+    language: zh_cn
+
+logging:
+  level:
+    root: info
+    cn.wmhwiki.wangojbackend: ${LOG_LEVEL:info}
+  pattern:
+    # %X{requestId} 由 RequestIdFilter 写入；未进入 Web 线程时显示 -（写法见 logger name 前的 []）
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:-}] %logger{40} - %msg%n"

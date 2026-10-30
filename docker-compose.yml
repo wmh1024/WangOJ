@@ -1,0 +1,171 @@
+# WangOJ 部署编排
+#
+# 使用前：
+#   1. cp .env.example .env 并替换所有 __REQUIRED__ 占位值
+#   2. ./judge/backend/install.sh          # 预拉取判题镜像（需要在宿主机执行）
+#   3. docker compose up -d --build
+#
+# 安全说明（务必阅读）：
+#   - judge 只在内部网络可达，容器不映射任何端口；
+#   - judge 需要访问宿主机 Docker 才能创建判题容器，因此挂载了 docker.sock，
+#     这等价于宿主机 root 权限。如果你不能接受这一点，请改为在宿主机直接运行 judge
+#     不要把它和业务容器放在同一信任域；
+#   - web 只映射到 127.0.0.1，外层请用独立的 Nginx/网关做 TLS 与域名。
+
+name: wangoj
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?请在 .env 中设置 DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-wangoj}
+      MYSQL_USER: ${DB_USERNAME:-wangoj}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --lower_case_table_names=0
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?请在 .env 中设置 REDIS_PASSWORD}"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.backend
+    image: wangoj/backend:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-wangoj}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME:-wangoj}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_DB_VALIDATE_PASSWORD: ${APP_DB_VALIDATE_PASSWORD:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      APP_PASSWORD_SALT: ${APP_PASSWORD_SALT:?请在 .env 中设置 APP_PASSWORD_SALT}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-}
+      JUDGE_URL: http://judge:8122/api/v1/judge
+      JUDGE_TOKEN: ${JUDGE_TOKEN:?请在 .env 中设置 JUDGE_TOKEN}
+      JUDGE_READ_TIMEOUT_MS: ${JUDGE_READ_TIMEOUT_MS:-60000}
+      APP_AI_ENABLED: ${APP_AI_ENABLED:-false}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      APP_AI_RATE_LIMIT_PER_MINUTE: ${APP_AI_RATE_LIMIT_PER_MINUTE:-10}
+      KNIFE4J_ENABLE: ${KNIFE4J_ENABLE:-false}
+      TZ: Asia/Shanghai
+    networks:
+      - backend
+      - judge-net
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    healthcheck:
+      # 用镜像自带的 wget：运行镜像是 alpine，/bin/sh 是 busybox ash，不支持 /dev/tcp 重定向
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8123/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  judge:
+    build:
+      context: ./judge
+      dockerfile: Dockerfile
+    image: wangoj/judge:latest
+    restart: unless-stopped
+    environment:
+      JUDGE_TOKEN: ${JUDGE_TOKEN:?请在 .env 中设置 JUDGE_TOKEN}
+      JUDGE_PORT: 8122
+      TZ: Asia/Shanghai
+      # 判题工作目录。必须是「judge 进程可写」与「宿主 Docker daemon 可见」的**同一路径**：
+      # 判题容器由宿主 daemon 创建，Bind 源路径按 daemon 视角解释。
+      # 因此这里用 VM 内的绝对路径，并用「同源同目标」的 bind mount 持久化，
+      # 让 judge 进程看到的路径与 daemon 看到的路径逐字一致。
+      JUDGE_SOURCE_DIR: ${JUDGE_SOURCE_DIR:-/var/lib/wangoj/source}
+    # 不映射端口：只有 backend 能通过 judge-net 访问
+    expose:
+      - "8122"
+    volumes:
+      # 判题容器由本服务通过 Docker API 创建，需要访问宿主机 Docker
+      # 这是高权限挂载，见文件顶部安全说明
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 关键：源与目标必须**逐字相同**（同源同目标），这样 judge 写进去的文件
+      # 落在 daemon 也认得的路径上。
+      # 反例（曾导致每个提交都编译失败）：`./judge-source:/opt/wangoj/source`。
+      # 此时 judge 把容器内路径 /opt/wangoj/source/<uuid> 交给 daemon，
+      # daemon 按**宿主机**解析该路径，宿主机上并不存在 → Docker 静默建空目录
+      # → 判题容器内 /data 为空 → “cc1: fatal error: /data/main.c: No such file”。
+      # 在 Docker Desktop(Windows) 上把宿主机目录挂成 VM 内绝对路径也会踩到同一问题。
+      - ${JUDGE_SOURCE_DIR:-/var/lib/wangoj/source}:${JUDGE_SOURCE_DIR:-/var/lib/wangoj/source}
+    working_dir: /opt/wangoj
+    networks:
+      - judge-net
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      # 同上：busybox ash 无 /dev/tcp，改用镜像自带 wget
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8122/ping | grep -q success"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: wangoj/web:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  backend:
+  judge-net:

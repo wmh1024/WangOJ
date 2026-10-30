@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="450" viewBox="0 0 1200 450" role="img" aria-label="自托管 开源">
+  <defs>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c2d12"/>
+      <stop offset="1" stop-color="#be123c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="450" fill="url(#g3)"/>
+  <path d="M0 360 Q300 280 600 360 T1200 340 V450 H0 Z" fill="#ffffff" opacity="0.08"/>
+  <text x="90" y="205" fill="#ffffff" font-family="Arial, sans-serif" font-size="56" font-weight="700">Self-hosted OJ</text>
+  <text x="92" y="262" fill="#fecdd3" font-family="Arial, sans-serif" font-size="26">Docker Compose · Apache-2.0 · bring your own badges</text>
+</svg>

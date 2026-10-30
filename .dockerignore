@@ -1,0 +1,31 @@
+# 通用
+.git
+.gitignore
+.idea
+.vscode
+**/*.log
+**/.DS_Store
+
+# 后端 / 沙箱
+target/
+**/target/
+*.jar
+.env
+.env.*
+!.env.example
+application-local.*
+source/
+
+# 前端
+node_modules/
+**/node_modules/
+dist/
+coverage/
+web/.env.local
+web/.env.*.local
+
+# 文档与部署
+docs/
+deploy/
+*.md
+!README.md

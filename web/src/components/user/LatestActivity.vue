@@ -1,0 +1,81 @@
+<!--
+  本文件的卡片与列表样式参考自 Arco Design Pro
+  （https://github.com/arco-design/arco-design-pro-vue）。
+  Copyright (c) 2021 Bytedance, Inc. and its affiliates，MIT License；
+  许可证全文见 web/LICENSE-ARCO-PRO，归属说明见仓库根目录 NOTICE。
+-->
+<template>
+  <a-card class="general-card" title="最近动态">
+    <a-list :bordered="false">
+      <a-list-item v-for="activity in activityList" :key="activity.id" action-layout="horizontal">
+        <a-skeleton v-if="loading" :loading="loading" :animation="true" class="skeleton-item">
+          <a-row :gutter="6">
+            <a-col :span="2">
+              <a-skeleton-shape shape="circle" />
+            </a-col>
+            <a-col :span="22">
+              <a-skeleton-line :widths="['40%', '100%']" :rows="2" />
+            </a-col>
+          </a-row>
+        </a-skeleton>
+        <a-list-item-meta v-else :title="activity.title" :description="activity.description">
+          <template #avatar>
+            <a-avatar>
+              <img v-if="activity.avatar" :src="activity.avatar" alt="avatar" />
+              <icon-user v-else />
+            </a-avatar>
+          </template>
+        </a-list-item-meta>
+      </a-list-item>
+    </a-list>
+  </a-card>
+</template>
+
+<script lang="ts" setup>
+import { ref } from 'vue'
+
+/**
+ * 动态数据尚未有后端接口支撑，这里保留占位结构；
+ * 有数据时按此结构渲染，无数据时展示空状态。
+ */
+interface Activity {
+  id: string
+  title: string
+  description: string
+  avatar?: string
+}
+
+const loading = ref(false)
+const activityList = ref<Activity[]>([])
+</script>
+
+<style scoped lang="less">
+.latest-activity {
+  &-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.general-card :deep(.arco-list-item) {
+  padding-left: 0;
+  border-bottom: none;
+
+  .arco-list-item-meta-content {
+    flex: 1;
+    padding-bottom: 27px;
+    border-bottom: 1px solid var(--color-neutral-3);
+  }
+
+  .arco-list-item-meta-avatar {
+    padding-bottom: 27px;
+  }
+
+  .skeleton-item {
+    margin-top: 10px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-neutral-3);
+  }
+}
+</style>

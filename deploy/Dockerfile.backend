@@ -1,0 +1,34 @@
+# ---------- 构建阶段 ----------
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /build
+
+# 先只拷贝 pom，利用 Docker 层缓存
+COPY pom.xml .
+RUN mvn -B -q dependency:go-offline
+
+COPY src ./src
+RUN mvn -B -q -DskipTests package
+
+# ---------- 运行阶段 ----------
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# 以非 root 用户运行
+RUN addgroup -S app && adduser -S -G app app
+COPY --from=build /build/target/*.jar /app/app.jar
+RUN chown -R app:app /app
+USER app
+
+ENV TZ=Asia/Shanghai \
+    JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+
+EXPOSE 8123
+
+# 健康检查用镜像自带的 wget。
+# 注意：运行镜像是 alpine，/bin/sh 是 busybox ash，**不支持** /dev/tcp 重定向——
+# 写成 `exec 3<>/dev/tcp/...` 会得到 "can't create /dev/tcp/...: nonexistent directory"，
+# 容器会一直 unhealthy。这里用 wget 更可靠，也不依赖 grep 的二进制输出处理。
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD wget -q -O - http://127.0.0.1:8123/actuator/health | grep -q '"status":"UP"' || exit 1
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

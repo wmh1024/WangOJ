@@ -1,0 +1,107 @@
+# =====================================================================
+# WangOJ 统一 .gitignore（仓库根目录唯一一份，不要在子目录再建）
+# =====================================================================
+
+# ---------- 构建产物 ----------
+target/
+build/
+dist/
+dist-ssr/
+out/
+*.class
+*.jar
+*.war
+*.ear
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+*.tsbuildinfo
+
+# ---------- Node ----------
+node_modules/
+coverage/
+.vite/
+.nyc_output/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 依赖锁文件：统一使用 npm，保留 web/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+/package-lock.json
+
+# ---------- 环境变量与本地配置（安全） ----------
+.env
+.env.*
+!.env.example
+!**/.env.example
+.env.local
+*.local
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# ---------- 判题运行时 ----------
+# 沙箱的工作目录：源码、输入、编译产物
+# source/           ：judge 直接运行在仓库根目录时产生
+# judge/source/     ：judge 在 judge/ 目录下运行时产生
+# judge-source/     ：compose 中 bind mount 给 judge 容器的宿主机目录
+source/
+judge/source/
+judge-source/
+judge/run/
+
+# ---------- 日志与临时文件 ----------
+*.log
+logs/
+tmp/
+temp/
+*.pid
+*.seed
+*.tmp
+*.bak
+*.orig
+*.rej
+hs_err_pid*
+replay_pid*
+
+# ---------- IDE / 编辑器 ----------
+.idea/
+*.iws
+*.iml
+*.ipr
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.project
+.classpath
+.factorypath
+.settings/
+.springBeans
+.sts4-cache
+.apt_generated
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+# Windows 保留设备名：某些工具（含 AI 助手）会误创建同名文件，永远不要提交
+nul
+NUL
+
+# ---------- 其他 ----------
+HELP.md
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/

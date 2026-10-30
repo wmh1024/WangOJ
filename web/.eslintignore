@@ -1,0 +1,4 @@
+# 依赖与构建产物（仓库只保留根目录一份 .gitignore，ESLint 需要独立的忽略文件）
+node_modules
+dist
+public
